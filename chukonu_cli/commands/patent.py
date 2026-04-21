@@ -81,11 +81,68 @@ def similar(
 
 @app.command()
 def advanced(
-    json_body: Path = typer.Option(..., "--json-body", help="JSON 请求体文件路径"),
+    json_body: Path | None = typer.Option(None, "--json-body", help="JSON 请求体文件路径"),
+    openapi: bool = typer.Option(False, "--openapi", help="打印 /search/advanced 接口的 OpenAPI schema（含依赖的 components.schemas），便于 AI 按规范构造请求体"),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
+    if openapi:
+        _print_advanced_openapi(json_out)
+        return
+    if json_body is None:
+        raise typer.BadParameter("必须提供 --json-body 或 --openapi")
     body = json_mod.loads(json_body.read_text(encoding="utf-8"))
     _call("POST", "/patent/api/search/advanced", body, json_out)
+
+
+def _print_advanced_openapi(json_out: bool) -> None:
+    cfg = load_cfg()
+    try:
+        with Client(cfg) as client:
+            r = client.request("GET", "/patent/api/openapi.json")
+    except AuthRequired as e:
+        typer.echo(f"未登录：{e}", err=True)
+        raise typer.Exit(code=2)
+    if r.status_code >= 400:
+        typer.echo(f"fetch openapi failed ({r.status_code}): {r.text[:300]}", err=True)
+        raise typer.Exit(code=1)
+    spec = r.json()
+
+    target = "/search/advanced"
+    path_obj = (spec.get("paths") or {}).get(target)
+    if path_obj is None:
+        typer.echo(f"openapi.json 里未找到 {target} ，返回完整文档以供参考", err=True)
+        out = spec
+    else:
+        all_schemas = ((spec.get("components") or {}).get("schemas") or {})
+        needed: dict[str, Any] = {}
+        _collect_refs(path_obj, all_schemas, needed)
+        out = {
+            "openapi": spec.get("openapi"),
+            "info": spec.get("info"),
+            "paths": {target: path_obj},
+            "components": {"schemas": needed} if needed else {},
+        }
+
+    payload = json_mod.dumps(out, ensure_ascii=False, indent=2)
+    if json_out:
+        typer.echo(payload)
+    else:
+        _console.print(RichJSON(payload))
+
+
+def _collect_refs(node: Any, all_schemas: dict[str, Any], out: dict[str, Any]) -> None:
+    if isinstance(node, dict):
+        ref = node.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/components/schemas/"):
+            name = ref.split("/")[-1]
+            if name not in out and name in all_schemas:
+                out[name] = all_schemas[name]
+                _collect_refs(all_schemas[name], all_schemas, out)
+        for v in node.values():
+            _collect_refs(v, all_schemas, out)
+    elif isinstance(node, list):
+        for v in node:
+            _collect_refs(v, all_schemas, out)
 
 
 @app.command()

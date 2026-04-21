@@ -9,6 +9,7 @@ import typer
 
 from chukonu_cli import credentials as creds_mod
 from chukonu_cli.browser import LoginError, run_login
+from chukonu_cli.client import AuthRequired, Client
 from chukonu_cli.config import load as load_cfg, save as save_cfg
 
 app = typer.Typer(help="OAuth 凭据管理 (login/logout/status)", no_args_is_help=True)
@@ -103,11 +104,41 @@ def status(json_out: bool = typer.Option(False, "--json")) -> None:
         "granted_at": pc.granted_at,
         "user": pc.user,
     }
+
+    # 从网关查询 user_id 和 quota
+    me_err: str | None = None
+    try:
+        with Client(cfg) as client:
+            r = client.request("GET", "/auth/me")
+        if r.status_code == 200:
+            me = r.json()
+            info["user_id"] = me.get("user_id")
+            info["quota"] = me.get("quota")
+            info["used_today"] = me.get("used_today")
+            info["remaining"] = me.get("remaining")
+            info["reset_tz"] = me.get("reset_tz")
+        else:
+            me_err = f"{r.status_code} {r.text[:120]}"
+    except AuthRequired as e:
+        me_err = f"auth: {e}"
+    except Exception as e:  # noqa: BLE001
+        me_err = f"network: {e}"
+
     if json_out:
+        if me_err:
+            info["me_error"] = me_err
         typer.echo(json_mod.dumps(info, ensure_ascii=False))
     else:
         typer.echo(f"Provider     : {info['provider']}")
         typer.echo(f"Gateway      : {info['gateway']}")
+        if "user_id" in info:
+            typer.echo(f"User         : {info['provider']}:{info['user_id']}")
+            typer.echo(
+                f"Quota        : {info['remaining']}/{info['quota']} "
+                f"(used {info['used_today']}, reset tz {info.get('reset_tz', 'UTC')})"
+            )
+        elif me_err:
+            typer.echo(f"User/Quota   : (unavailable: {me_err})")
         typer.echo(f"Expires in   : {info['expires_in']}s")
         typer.echo(f"Refresh token: {'yes' if info['has_refresh_token'] else 'no'}")
         typer.echo(f"Granted at   : {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(pc.granted_at))}")
