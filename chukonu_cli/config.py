@@ -15,7 +15,7 @@ import tomli_w
 
 from chukonu_cli.paths import config_file
 
-DEFAULT_GATEWAY = "https://search.houdutech.cn:8443"
+DEFAULT_GATEWAY = "https://search.houdutech.cn"
 DEFAULT_PROVIDER = "google"
 
 
