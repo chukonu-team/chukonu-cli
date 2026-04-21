@@ -1,0 +1,9 @@
+{
+  "name": "chukonu-cli",
+  "description": "Chukonu 搜索 CLI 插件：提供通用网络搜索与专利搜索两个 skill，底层依赖 chukonu-cli 命令行 (需 pip install chukonu-cli 并 chukonu-cli auth login)",
+  "version": "0.1.0",
+  "author": { "name": "chukonu-team" },
+  "homepage": "https://github.com/chukonu-team/chukonu-cli",
+  "repository": "https://github.com/chukonu-team/chukonu-cli",
+  "keywords": ["search", "patent", "chukonu", "se4ai"]
+}

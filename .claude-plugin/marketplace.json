@@ -1,0 +1,17 @@
+{
+  "name": "chukonu",
+  "owner": { "name": "chukonu-team" },
+  "metadata": {
+    "description": "Chukonu 团队官方 Claude Code 插件 marketplace",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "chukonu-cli",
+      "source": "./",
+      "description": "通用网络搜索 + 专利搜索 (chukonu-search-general / chukonu-search-patent)",
+      "category": "search",
+      "tags": ["search", "patent"]
+    }
+  ]
+}
