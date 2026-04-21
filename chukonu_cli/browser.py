@@ -155,7 +155,14 @@ def run_login(
             webbrowser.open(auth_url)
         except Exception:
             pass
-    print(f"请在浏览器打开登录链接：\n  {auth_url}\n本地回调地址：{local_redirect}", flush=True)
+    hint = {
+        "google": "请在浏览器中完成 Google 授权。",
+        "wechat": "请在浏览器中用手机微信扫描二维码。",
+    }.get(provider, f"请在浏览器中完成 {provider} 授权。")
+    print(
+        f"请在浏览器打开登录链接：\n  {auth_url}\n本地回调：{local_redirect}\n{hint}",
+        flush=True,
+    )
 
     try:
         if not done.wait(timeout=timeout):
