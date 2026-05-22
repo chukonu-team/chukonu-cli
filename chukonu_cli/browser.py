@@ -52,6 +52,8 @@ def run_login(
 
     result: dict[str, Any] = {}
     done = threading.Event()
+    handled_lock = threading.Lock()
+    handled = {"v": False}
 
     # 容器，handler 可通过 server 拿到这些
     ctx = {
@@ -61,6 +63,8 @@ def run_login(
         "provider": provider,
         "result": result,
         "done": done,
+        "handled_lock": handled_lock,
+        "handled": handled,
     }
 
     class Handler(http.server.BaseHTTPRequestHandler):
@@ -79,6 +83,13 @@ def run_login(
             if url.path != "/callback":
                 self._reply(404, b"not found", "text/plain; charset=utf-8")
                 return
+            # 微信扫码后浏览器/代理偶尔会重发 /callback；第二次拿到的是已 pop 的 code，
+            # 会被网关判 invalid_grant 并覆盖 result 里已成功的 creds。这里加一次性闸门。
+            with ctx["handled_lock"]:
+                if ctx["handled"]["v"]:
+                    self._reply(200, b"already processed", "text/plain; charset=utf-8")
+                    return
+                ctx["handled"]["v"] = True
             qs = parse_qs(url.query)
             code = (qs.get("code") or [""])[0]
             state = (qs.get("state") or [""])[0]
