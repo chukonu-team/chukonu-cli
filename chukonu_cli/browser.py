@@ -111,7 +111,7 @@ def run_login(
             local_redirect = _local_redirect_for(ctx["server_port"])
             cfg_: Config = ctx["cfg"]
             try:
-                with httpx.Client(verify=cfg_.verify_tls, timeout=15.0) as http_:
+                with httpx.Client(verify=cfg_.verify_tls, timeout=30.0) as http_:
                     r = http_.post(
                         f"{cfg_.gateway_base_url}/auth/token",
                         json={
