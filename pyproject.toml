@@ -44,7 +44,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["chukonu_cli", "chukonu_cli.commands"]
+packages = ["chukonu_cli", "chukonu_cli.commands", "chukonu_cli.client_core"]
 
 [tool.setuptools.package-data]
 chukonu_cli = ["login_page.html"]

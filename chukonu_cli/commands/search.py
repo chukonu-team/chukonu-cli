@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.json import JSON as RichJSON
 
 from chukonu_cli.client import AuthRequired, Client
+from chukonu_cli.client_core.search import build_search_body
 from chukonu_cli.config import load as load_cfg
 
 app = typer.Typer(invoke_without_command=True)
@@ -35,20 +36,24 @@ def search(
     chunks_per_source: int | None = typer.Option(None, "--chunks-per-source"),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    body: dict[str, Any] = {"query": query, "search_depth": depth, "max_results": max_results}
-    if topic is not None: body["topic"] = topic
-    if time_range is not None: body["time_range"] = time_range
-    if start_date is not None: body["start_date"] = start_date
-    if end_date is not None: body["end_date"] = end_date
-    if include_domain: body["include_domains"] = include_domain
-    if exclude_domain: body["exclude_domains"] = exclude_domain
-    if include_answer: body["include_answer"] = True
-    if include_raw: body["include_raw_content"] = True
-    if include_favicon: body["include_favicon"] = True
-    if country is not None: body["country"] = country
-    if exact_match: body["exact_match"] = True
-    if safe_search: body["safe_search"] = True
-    if chunks_per_source is not None: body["chunks_per_source"] = chunks_per_source
+    body = build_search_body(
+        query=query,
+        depth=depth,
+        max_results=max_results,
+        topic=topic,
+        time_range=time_range,
+        start_date=start_date,
+        end_date=end_date,
+        include_domains=include_domain,
+        exclude_domains=exclude_domain,
+        include_answer=include_answer,
+        include_raw_content=include_raw,
+        include_favicon=include_favicon,
+        country=country,
+        exact_match=exact_match,
+        safe_search=safe_search,
+        chunks_per_source=chunks_per_source,
+    )
 
     cfg = load_cfg()
     try:

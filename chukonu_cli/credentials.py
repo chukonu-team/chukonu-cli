@@ -1,55 +1,33 @@
-"""明文 JSON 凭据读写，用 filelock 串行化。
+"""明文 JSON 凭据读写,用 filelock 串行化。
 
-用户明确要求：凭据**明文**保存在 ~/.local/share/chukonu-cli/。
+用户明确要求:凭据**明文**保存在 ~/.local/share/chukonu-cli/。
 文件权限 0600 + 父目录 0700 是唯一保护。
+
+ProviderCreds 数据类来自 client_core,本文件只提供文件落盘 + 多 provider 管理 +
+适配 client_core.CredsProvider Protocol 的 FileCredsProvider。
 """
 from __future__ import annotations
 
 import json
 import os
-import time
 from dataclasses import dataclass, field
 from typing import Any
 
 from filelock import FileLock
 
-from chukonu_cli.paths import creds_lock, credentials_file
+from chukonu_cli.client_core.credentials import ProviderCreds
+from chukonu_cli.paths import creds_lock, credentials_file, refresh_lock
 
-
-@dataclass
-class ProviderCreds:
-    access_token: str
-    refresh_token: str
-    expires_at: int  # unix 秒
-    token_type: str = "Bearer"
-    granted_at: int = field(default_factory=lambda: int(time.time()))
-    user: dict[str, Any] = field(default_factory=dict)
-
-    def is_valid(self, skew_seconds: int = 60) -> bool:
-        return self.expires_at > int(time.time()) + skew_seconds
-
-    @classmethod
-    def from_token_response(cls, data: dict[str, Any], user: dict[str, Any] | None = None) -> "ProviderCreds":
-        now = int(time.time())
-        expires_in = int(data.get("expires_in", 0))
-        return cls(
-            access_token=data["access_token"],
-            refresh_token=data.get("refresh_token", ""),
-            expires_at=now + expires_in if expires_in else now,
-            token_type=data.get("token_type", "Bearer"),
-            granted_at=now,
-            user=user or {},
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "access_token": self.access_token,
-            "refresh_token": self.refresh_token,
-            "expires_at": self.expires_at,
-            "token_type": self.token_type,
-            "granted_at": self.granted_at,
-            "user": self.user,
-        }
+__all__ = [
+    "ProviderCreds",
+    "CredsFile",
+    "load",
+    "save",
+    "upsert_provider",
+    "remove_provider",
+    "delete_all",
+    "FileCredsProvider",
+]
 
 
 @dataclass
@@ -103,7 +81,9 @@ def save(creds: CredsFile) -> None:
         os.chmod(path, 0o600)
 
 
-def upsert_provider(provider: str, pc: ProviderCreds, *, make_current: bool = True) -> CredsFile:
+def upsert_provider(
+    provider: str, pc: ProviderCreds, *, make_current: bool = True
+) -> CredsFile:
     creds = load()
     creds.providers[provider] = pc
     if make_current or creds.current is None:
@@ -126,3 +106,44 @@ def delete_all() -> None:
     with _lock():
         if path.exists():
             path.unlink()
+
+
+class FileCredsProvider:
+    """适配 client_core.CredsProvider:从 ~/.local/share/chukonu-cli/credentials.json
+    读写指定 provider 的凭据,refresh 用 per-provider filelock 串行化。
+    """
+
+    def __init__(self, provider: str | None = None):
+        # provider=None 时延迟到 load() 取 current
+        self._explicit = provider
+        self._refresh_lock_path = (
+            refresh_lock(provider) if provider else None
+        )
+
+    def _provider(self) -> str | None:
+        if self._explicit:
+            return self._explicit
+        return load().current
+
+    def load(self) -> ProviderCreds | None:
+        p = self._provider()
+        if not p:
+            return None
+        return load().providers.get(p)
+
+    def save(self, pc: ProviderCreds) -> None:
+        p = self._provider()
+        if not p:
+            raise RuntimeError("no provider context to save credentials")
+        upsert_provider(p, pc)
+
+    def clear(self) -> None:
+        p = self._provider()
+        if p:
+            remove_provider(p)
+
+    def refresh_lock_path(self) -> str:
+        # client_core 的 Client._refresh 通过 CredsProvider 接口不直接拿锁。
+        # 这里保留 hook 供 CLI 层的 Client 包装使用。
+        p = self._provider() or "default"
+        return str(refresh_lock(p))

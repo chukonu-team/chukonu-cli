@@ -1,9 +1,9 @@
-"""config.toml 读写。仅两三个字段，失败时返回默认值。"""
+"""config.toml 读写。Config dataclass 复用 client_core 版本。"""
 from __future__ import annotations
 
 import os
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 
 if sys.version_info >= (3, 11):
@@ -13,23 +13,27 @@ else:  # pragma: no cover
 
 import tomli_w
 
+from chukonu_cli.client_core.config import Config
 from chukonu_cli.paths import config_file
 
 DEFAULT_GATEWAY = "https://search.houdutech.cn"
 DEFAULT_PROVIDER = "google"
 
+__all__ = ["Config", "DEFAULT_GATEWAY", "DEFAULT_PROVIDER", "load", "save"]
 
-@dataclass
-class Config:
-    gateway_base_url: str = DEFAULT_GATEWAY
-    default_provider: str = DEFAULT_PROVIDER
-    verify_tls: bool = True
+
+def _default_config() -> Config:
+    return Config(
+        gateway_base_url=DEFAULT_GATEWAY,
+        default_provider=DEFAULT_PROVIDER,
+        verify_tls=True,
+    )
 
 
 def load() -> Config:
     path = config_file()
     if not path.exists():
-        return Config()
+        return _default_config()
     with open(path, "rb") as f:
         data = tomllib.load(f)
     return Config(

@@ -10,6 +10,10 @@ from rich.console import Console
 from rich.json import JSON as RichJSON
 
 from chukonu_cli.client import AuthRequired, Client
+from chukonu_cli.client_core.search import (
+    build_patent_keyword_body,
+    build_patent_similar_body,
+)
 from chukonu_cli.config import load as load_cfg
 
 app = typer.Typer(help="专利搜索 (keyword/similar/advanced/get/stats)", no_args_is_help=True)
@@ -49,11 +53,15 @@ def keyword(
     frm: int = typer.Option(0, "--from"),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    body: dict[str, Any] = {"query": query, "size": size, "from": frm}
-    if patent_type: body["patent_type"] = patent_type
-    if year_min is not None: body["year_min"] = year_min
-    if year_max is not None: body["year_max"] = year_max
-    if ipc: body["ipc_code"] = ipc
+    body = build_patent_keyword_body(
+        query=query,
+        patent_type=patent_type,
+        year_min=year_min,
+        year_max=year_max,
+        ipc_code=ipc,
+        size=size,
+        frm=frm,
+    )
     _call("POST", "/patent/api/search/keyword", body, json_out)
 
 
@@ -70,12 +78,15 @@ def similar(
 ) -> None:
     if not application_number and not text:
         raise typer.BadParameter("必须提供 --application-number 或 --text")
-    body: dict[str, Any] = {"top_k": top_k, "threshold": threshold}
-    if application_number: body["application_number"] = application_number
-    if text: body["text"] = text
-    if ipc: body["ipc_code"] = ipc
-    if year_min is not None: body["year_min"] = year_min
-    if year_max is not None: body["year_max"] = year_max
+    body = build_patent_similar_body(
+        application_number=application_number,
+        text=text,
+        top_k=top_k,
+        threshold=threshold,
+        ipc_code=ipc,
+        year_min=year_min,
+        year_max=year_max,
+    )
     _call("POST", "/patent/api/search/similar", body, json_out)
 
 
