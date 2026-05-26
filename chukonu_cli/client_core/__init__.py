@@ -9,6 +9,7 @@ from .config import Config
 from .credentials import ProviderCreds
 from .errors import ApiError, AuthRequired
 from .search import (
+    build_patent_detail_path,
     build_patent_keyword_body,
     build_patent_similar_body,
     build_search_body,
@@ -23,5 +24,6 @@ __all__ = [
     "AuthRequired",
     "build_search_body",
     "build_patent_keyword_body",
+    "build_patent_detail_path",
     "build_patent_similar_body",
 ]

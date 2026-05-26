@@ -79,6 +79,15 @@ def build_patent_keyword_body(
     return body
 
 
+def build_patent_detail_path(application_number: str) -> str:
+    """patent_search_engine `/patent/{application_number}` 详情端点路径。
+
+    application_number 直接拼到 URL path (FastAPI 路由会做 URL-decode);调用方负责
+    在不可控来源时先 quote。M4 MCP `fetch(id="patent:<n>")` 内部使用。
+    """
+    return f"/patent/{application_number}"
+
+
 def build_patent_similar_body(
     *,
     application_number: str | None = None,
