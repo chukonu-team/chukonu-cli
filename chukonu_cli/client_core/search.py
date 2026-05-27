@@ -66,6 +66,7 @@ def build_patent_keyword_body(
     ipc_code: str | None = None,
     size: int = 10,
     frm: int = 0,
+    dataset: str | None = None,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {"query": query, "size": size, "from": frm}
     if patent_type:
@@ -76,16 +77,21 @@ def build_patent_keyword_body(
         body["year_max"] = year_max
     if ipc_code:
         body["ipc_code"] = ipc_code
+    if dataset:
+        body["dataset"] = dataset
     return body
 
 
-def build_patent_detail_path(application_number: str) -> str:
+def build_patent_detail_path(application_number: str, dataset: str | None = None) -> str:
     """patent_search_engine `/patent/{application_number}` 详情端点路径。
 
-    application_number 直接拼到 URL path (FastAPI 路由会做 URL-decode);调用方负责
-    在不可控来源时先 quote。M4 MCP `fetch(id="patent:<n>")` 内部使用。
+    application_number 由调用方负责 quote;dataset 不为 None 时追加为 query param,
+    对应后端 `_resolve_index` 的多数据集路由(cn_abstract / epo_docdb 等)。
     """
-    return f"/patent/{application_number}"
+    path = f"/patent/{application_number}"
+    if dataset:
+        path = f"{path}?dataset={dataset}"
+    return path
 
 
 def build_patent_similar_body(
