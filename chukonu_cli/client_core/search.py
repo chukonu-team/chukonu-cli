@@ -94,6 +94,91 @@ def build_patent_detail_path(application_number: str, dataset: str | None = None
     return path
 
 
+def build_patent_advanced_body(
+    *,
+    # 文本（支持 OR 布尔，如 "人工智能 OR 深度学习"）
+    title: str | None = None,
+    abstract_content: str | None = None,
+    claim: str | None = None,
+    title_abstract_content: str | None = None,
+    tiabc: str | None = None,
+    full: str | None = None,
+    # IPC 五级
+    class_ipc: str | None = None,
+    class_ipc_main: str | None = None,
+    class_ipc_section: str | None = None,
+    class_ipc_class: str | None = None,
+    class_ipc_subclass: str | None = None,
+    class_ipc_group: str | None = None,
+    # 主体
+    ap: str | None = None,
+    first_ap: str | None = None,
+    inventor: str | None = None,
+    first_in: str | None = None,
+    # 类型 & 号
+    patent_type: str | None = None,
+    an: str | None = None,
+    pn: str | None = None,
+    # 范围（字符串语法，由后端解析）
+    application_date: str | None = None,
+    no_ap: str | None = None,
+    no_in: str | None = None,
+    citation_number_of_times: str | None = None,
+    citation_forward_number_of_times: str | None = None,
+    # 分页 & 数据集
+    size: int = 20,
+    frm: int = 0,
+    dataset: str = "cn_abstract",
+    # 兜底：透传 AdvancedSearchRequest 未在签名暴露的字段
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """patent_search_engine `/search/advanced` 请求体。
+
+    显式 kwargs 覆盖 extra 同名 key;空字符串等价于 None(不进 body)。
+    分页字段映射后端契约 `size` / `from`。
+    """
+    body: dict[str, Any] = {}
+    if extra:
+        for k, v in extra.items():
+            if v is None or v == "":
+                continue
+            body[k] = v
+    explicit: dict[str, Any] = {
+        "title": title,
+        "abstract_content": abstract_content,
+        "claim": claim,
+        "title_abstract_content": title_abstract_content,
+        "tiabc": tiabc,
+        "full": full,
+        "class_ipc": class_ipc,
+        "class_ipc_main": class_ipc_main,
+        "class_ipc_section": class_ipc_section,
+        "class_ipc_class": class_ipc_class,
+        "class_ipc_subclass": class_ipc_subclass,
+        "class_ipc_group": class_ipc_group,
+        "ap": ap,
+        "first_ap": first_ap,
+        "inventor": inventor,
+        "first_in": first_in,
+        "patent_type": patent_type,
+        "an": an,
+        "pn": pn,
+        "application_date": application_date,
+        "no_ap": no_ap,
+        "no_in": no_in,
+        "citation_number_of_times": citation_number_of_times,
+        "citation_forward_number_of_times": citation_forward_number_of_times,
+    }
+    for k, v in explicit.items():
+        if v is None or v == "":
+            continue
+        body[k] = v
+    body["size"] = size
+    body["from"] = frm
+    body["dataset"] = dataset
+    return body
+
+
 def build_patent_similar_body(
     *,
     application_number: str | None = None,
