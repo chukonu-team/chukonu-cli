@@ -1,6 +1,7 @@
 """doctor：自检各项。"""
 from __future__ import annotations
 
+import asyncio
 import json as json_mod
 import os
 import time
@@ -73,14 +74,29 @@ def _check_token_refresh(cfg, pc: creds_mod.ProviderCreds, provider: str) -> tup
         return False, f"transport: {e}"
 
 
-def _check_upstream(cfg, client: Client, path: str, label: str) -> tuple[bool, str]:
+async def _check_upstream(cfg, client, path: str, label: str) -> tuple[bool, str]:
     try:
-        r = client.request("GET", path)
+        r = await client.request("GET", path)
         if 200 <= r.status_code < 300:
             return True, f"{label} {r.status_code}"
         return False, f"{label} {r.status_code}: {r.text[:100]}"
     except Exception as e:  # noqa: BLE001
         return False, f"{label} error: {e}"
+
+
+async def _aupstream_checks(cfg) -> list[tuple[str, bool, str]]:
+    """打开一个 async Client,跑两项上游健康检查,返回 (name, ok, msg) 列表。"""
+    async with Client(cfg) as client:
+        ok_se4ai, msg_se4ai = await _check_upstream(
+            cfg, client, "/se4ai/api/health", "GET /se4ai/api/health"
+        )
+        ok_patent, msg_patent = await _check_upstream(
+            cfg, client, "/patent/api/health", "GET /patent/api/health"
+        )
+    return [
+        ("upstream_se4ai", ok_se4ai, msg_se4ai),
+        ("upstream_patent", ok_patent, msg_patent),
+    ]
 
 
 app = typer.Typer(invoke_without_command=True)
@@ -113,11 +129,8 @@ def doctor(json_out: bool = typer.Option(False, "--json")) -> None:
         provider = creds_mod.load().current or ""
         ok, msg = _check_token_refresh(cfg, pc, provider)
         record("token_refresh_works", ok, msg)
-        with Client(cfg) as client:
-            ok, msg = _check_upstream(cfg, client, "/se4ai/api/health", "GET /se4ai/api/health")
-            record("upstream_se4ai", ok, msg)
-            ok, msg = _check_upstream(cfg, client, "/patent/api/health", "GET /patent/api/health")
-            record("upstream_patent", ok, msg)
+        for name, ok, msg in asyncio.run(_aupstream_checks(cfg)):
+            record(name, ok, msg)
 
     must_pass = {"config_file", "gateway_reachable", "token_present", "token_local_valid", "token_refresh_works", "credentials_file"}
     critical_fail = any(r["status"] == "fail" and r["name"] in must_pass for r in results)

@@ -1,6 +1,7 @@
 """search 子命令：薄封装 POST /se4ai/api/search。"""
 from __future__ import annotations
 
+import asyncio
 import json as json_mod
 from typing import Any
 
@@ -56,9 +57,13 @@ def search(
     )
 
     cfg = load_cfg()
+    asyncio.run(_run(cfg, body, json_out))
+
+
+async def _run(cfg: Any, body: dict[str, Any], json_out: bool) -> None:
     try:
-        with Client(cfg) as client:
-            r = client.request("POST", "/se4ai/api/search", json_body=body)
+        async with Client(cfg) as client:
+            r = await client.request("POST", "/se4ai/api/search", json_body=body)
     except AuthRequired as e:
         typer.echo(f"未登录：{e}", err=True)
         raise typer.Exit(code=2)

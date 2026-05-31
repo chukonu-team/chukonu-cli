@@ -20,8 +20,9 @@ class Client(_CoreClient):
         self._file_creds = FileCredsProvider(provider)
         super().__init__(cfg, creds=self._file_creds)
 
-    def _refresh(self) -> ProviderCreds:
+    async def _refresh(self) -> ProviderCreds:
         # 多进程串行化:同一 provider 的 refresh 互斥,避免并发触发 RT rotation 竞争。
+        # FileLock 同步获取(短暂);拿到锁后驱动父类的 async refresh。
         lock = FileLock(self._file_creds.refresh_lock_path(), timeout=30)
         with lock:
-            return super()._refresh()
+            return await super()._refresh()

@@ -1,6 +1,7 @@
 """auth login / logout / status 子命令。"""
 from __future__ import annotations
 
+import asyncio
 import json as json_mod
 import time
 
@@ -81,6 +82,11 @@ def _revoke_remote(base_url: str, pc: creds_mod.ProviderCreds, *, verify: bool, 
         typer.echo(f"remote logout for {provider} failed (ignored): {e}", err=True)
 
 
+async def _fetch_me(cfg) -> httpx.Response:
+    async with Client(cfg) as client:
+        return await client.request("GET", "/auth/me")
+
+
 @app.command()
 def status(json_out: bool = typer.Option(False, "--json")) -> None:
     """查看当前登录状态。未登录时 exit 1。"""
@@ -108,8 +114,7 @@ def status(json_out: bool = typer.Option(False, "--json")) -> None:
     # 从网关查询 user_id 和 quota
     me_err: str | None = None
     try:
-        with Client(cfg) as client:
-            r = client.request("GET", "/auth/me")
+        r = asyncio.run(_fetch_me(cfg))
         if r.status_code == 200:
             me = r.json()
             info["user_id"] = me.get("user_id")

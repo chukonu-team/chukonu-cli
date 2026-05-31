@@ -1,6 +1,7 @@
 """patent 子命令：薄封装 /patent/api/* 。"""
 from __future__ import annotations
 
+import asyncio
 import json as json_mod
 from pathlib import Path
 from typing import Any
@@ -20,11 +21,15 @@ app = typer.Typer(help="专利搜索 (keyword/similar/advanced/get/stats)", no_a
 _console = Console()
 
 
-def _call(method: str, path: str, body: Any | None, json_out: bool) -> None:
+async def _call(method: str, path: str, body: Any | None, json_out: bool) -> None:
     cfg = load_cfg()
     try:
-        with Client(cfg) as client:
-            r = client.request(method, path, json_body=body) if body is not None else client.request(method, path)
+        async with Client(cfg) as client:
+            r = (
+                await client.request(method, path, json_body=body)
+                if body is not None
+                else await client.request(method, path)
+            )
     except AuthRequired as e:
         typer.echo(f"未登录：{e}", err=True)
         raise typer.Exit(code=2)
@@ -62,7 +67,7 @@ def keyword(
         size=size,
         frm=frm,
     )
-    _call("POST", "/patent/api/search/keyword", body, json_out)
+    asyncio.run(_call("POST", "/patent/api/search/keyword", body, json_out))
 
 
 @app.command()
@@ -87,7 +92,7 @@ def similar(
         year_min=year_min,
         year_max=year_max,
     )
-    _call("POST", "/patent/api/search/similar", body, json_out)
+    asyncio.run(_call("POST", "/patent/api/search/similar", body, json_out))
 
 
 @app.command()
@@ -97,19 +102,19 @@ def advanced(
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
     if openapi:
-        _print_advanced_openapi(json_out)
+        asyncio.run(_print_advanced_openapi(json_out))
         return
     if json_body is None:
         raise typer.BadParameter("必须提供 --json-body 或 --openapi")
     body = json_mod.loads(json_body.read_text(encoding="utf-8"))
-    _call("POST", "/patent/api/search/advanced", body, json_out)
+    asyncio.run(_call("POST", "/patent/api/search/advanced", body, json_out))
 
 
-def _print_advanced_openapi(json_out: bool) -> None:
+async def _print_advanced_openapi(json_out: bool) -> None:
     cfg = load_cfg()
     try:
-        with Client(cfg) as client:
-            r = client.request("GET", "/patent/api/openapi.json")
+        async with Client(cfg) as client:
+            r = await client.request("GET", "/patent/api/openapi.json")
     except AuthRequired as e:
         typer.echo(f"未登录：{e}", err=True)
         raise typer.Exit(code=2)
@@ -161,9 +166,9 @@ def get(
     application_number: str = typer.Argument(...),
     json_out: bool = typer.Option(False, "--json"),
 ) -> None:
-    _call("GET", f"/patent/api/patent/{application_number}", None, json_out)
+    asyncio.run(_call("GET", f"/patent/api/patent/{application_number}", None, json_out))
 
 
 @app.command()
 def stats(json_out: bool = typer.Option(False, "--json")) -> None:
-    _call("GET", "/patent/api/stats", None, json_out)
+    asyncio.run(_call("GET", "/patent/api/stats", None, json_out))

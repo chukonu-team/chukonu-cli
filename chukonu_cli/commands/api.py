@@ -1,6 +1,7 @@
 """通用 api 子命令：chukonu-cli api <METHOD> <PATH> [flags]."""
 from __future__ import annotations
 
+import asyncio
 import json as json_mod
 import sys
 from pathlib import Path
@@ -37,6 +38,26 @@ def _parse_json(s: str | None, label: str) -> Any:
         raise typer.BadParameter(f"{label} is not valid JSON: {e}")
 
 
+async def _send(
+    cfg: Any,
+    method: str,
+    path: str,
+    params_obj: Any,
+    body_obj: Any,
+    headers: dict[str, str],
+    no_auth: bool,
+):
+    async with Client(cfg) as client:
+        return await client.request(
+            method.upper(),
+            path,
+            params=params_obj,
+            json_body=body_obj,
+            headers=headers,
+            auth=not no_auth,
+        )
+
+
 @app.callback(invoke_without_command=True)
 def api(
     method: str = typer.Argument(..., help="HTTP method: GET/POST/PUT/PATCH/DELETE/HEAD"),
@@ -70,8 +91,9 @@ def api(
         return
 
     try:
-        with Client(cfg) as client:
-            r = client.request(method.upper(), path, params=params_obj, json_body=body_obj, headers=headers, auth=not no_auth)
+        r = asyncio.run(
+            _send(cfg, method, path, params_obj, body_obj, headers, no_auth)
+        )
     except AuthRequired as e:
         typer.echo(f"未登录或凭据失效：{e}", err=True)
         raise typer.Exit(code=2)
