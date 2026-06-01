@@ -10,6 +10,9 @@ metadata:
 
 # chukonu-search-general
 
+> **[DEPRECATED — product 2]** 通用网络搜索（公网/聚合）为「产品二」，第一版对外不发布。
+> 此 skill 保留待公网搜索能力对外后重启；当前请使用 `chukonu-search-patent`（专利搜索）。
+
 > **使用前**：先 `chukonu-cli doctor` 自检；若 `token_present` 失败，引导用户运行 `chukonu-cli auth login`。
 
 ## 何时使用本 skill

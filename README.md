@@ -18,8 +18,8 @@ python -m venv .venv
 | `chukonu-cli auth status [--json]` | 查看登录状态；未登录 exit 1 |
 | `chukonu-cli doctor [--json]` | 健康检查 (config / 凭据 / 网关 / token / 上游) |
 | `chukonu-cli api <METHOD> <PATH> [flags]` | 通用 API 调用，自动注入 Bearer |
-| `chukonu-cli search <query> [flags]` | 通用搜索，薄封装 `POST /se4ai/api/search` |
-| `chukonu-cli patent {keyword,similar,advanced,get,stats}` | 专利搜索 |
+| `chukonu-cli search <query> [flags]` | 通用网络搜索，薄封装 `POST /se4ai/api/search`（**产品二，gated**：公网搜索默认未对外，patent 用户请用下方 `patent`） |
+| `chukonu-cli patent {keyword,similar,advanced,get,stats}` | 专利搜索（第一版主推） |
 
 ## 文件布局
 
@@ -57,11 +57,12 @@ default_provider = "wechat"
 
 ## Skills
 
-`skills/chukonu-search-general/` 与 `skills/chukonu-search-patent/` 为 AI Agent (例如 Claude Code) 接入搜索能力。
+`skills/chukonu-search-patent/`（专利搜索）为第一版主推的 AI Agent (例如 Claude Code) 接入能力。
+`skills/chukonu-search-general/`（通用网络搜索）为「产品二」，当前 **[DEPRECATED — product 2]**，保留待公网搜索对外后重启。
 
 ## 作为 Claude Code 插件安装
 
-本仓库本身即是一个 Claude Code 插件 marketplace，内含 `chukonu-cli` 插件（含 `chukonu-search-general` / `chukonu-search-patent` 两个 skill）。
+本仓库本身即是一个 Claude Code 插件 marketplace，内含 `chukonu-cli` 插件（第一版主推 `chukonu-search-patent`；`chukonu-search-general` 为 gated 的产品二）。
 
 前置：已 `pip install -e .` 或 `pip install chukonu-cli`，并完成 `chukonu-cli auth login`。
 
