@@ -13,7 +13,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
-from filelock import FileLock
+from filelock import BaseFileLock, FileLock
 
 from chukonu_cli.client_core.credentials import ProviderCreds
 from chukonu_cli.paths import creds_lock, credentials_file, refresh_lock
@@ -56,7 +56,7 @@ class CredsFile:
         return cls(current=data.get("current"), providers=providers)
 
 
-def _lock() -> FileLock:
+def _lock() -> BaseFileLock:
     return FileLock(str(creds_lock()), timeout=10)
 
 
