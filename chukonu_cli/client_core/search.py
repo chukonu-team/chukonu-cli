@@ -96,14 +96,11 @@ def build_patent_detail_path(application_number: str, dataset: str | None = None
 
 def build_patent_advanced_body(
     *,
-    # 文本（支持 OR 布尔，如 "人工智能 OR 深度学习"）
+    # 文本（支持 OR 布尔，如 "人工智能 OR 深度学习"）；epo 无 claims，故仅标题/摘要
+    title_abstract_content: str | None = None,
     title: str | None = None,
     abstract_content: str | None = None,
-    claim: str | None = None,
-    title_abstract_content: str | None = None,
-    tiabc: str | None = None,
-    full: str | None = None,
-    # IPC 五级
+    # IPC（wrapper 已按粒度路由到对应精确字段）
     class_ipc: str | None = None,
     class_ipc_main: str | None = None,
     class_ipc_section: str | None = None,
@@ -115,41 +112,35 @@ def build_patent_advanced_body(
     first_ap: str | None = None,
     inventor: str | None = None,
     first_in: str | None = None,
-    # 类型 & 号
-    patent_type: str | None = None,
-    an: str | None = None,
-    pn: str | None = None,
-    # 范围（字符串语法，由后端解析）
-    application_date: str | None = None,
+    # 数量（wrapper 已拼成 "min TO max" 字符串）
     no_ap: str | None = None,
     no_in: str | None = None,
-    citation_number_of_times: str | None = None,
-    citation_forward_number_of_times: str | None = None,
-    # 分页 & 数据集
+    # 号码
+    an: str | None = None,
+    pn: str | None = None,
+    # 类型（wrapper 已把 kind_code 展开成逗号串）
+    patent_type: str | None = None,
+    # EPO 专属
+    country: list[str] | None = None,
+    family_id: str | None = None,
+    # 日期范围（wrapper 已拼成 "[from TO to]" 字符串）
+    application_date: str | None = None,
+    publication_date: str | None = None,
+    # 分页
     size: int = 20,
     frm: int = 0,
-    dataset: str = "cn_abstract",
-    # 兜底：透传 AdvancedSearchRequest 未在签名暴露的字段
-    extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """patent_search_engine `/search/advanced` 请求体。
+    """patent_search_engine `/search/advanced` 请求体（epo_docdb-only）。
 
-    显式 kwargs 覆盖 extra 同名 key;空字符串等价于 None(不进 body)。
-    分页字段映射后端契约 `size` / `from`。
+    入参均为**已映射好的后端字段名**（wrapper 负责校验/路由/展开/拼串）。
+    空字符串等价于不传（不进 body）。`country` 为 list 直传。
+    分页字段映射后端契约 `size` / `from`；`dataset` 固定 `epo_docdb`。
     """
     body: dict[str, Any] = {}
-    if extra:
-        for k, v in extra.items():
-            if v is None or v == "":
-                continue
-            body[k] = v
     explicit: dict[str, Any] = {
+        "title_abstract_content": title_abstract_content,
         "title": title,
         "abstract_content": abstract_content,
-        "claim": claim,
-        "title_abstract_content": title_abstract_content,
-        "tiabc": tiabc,
-        "full": full,
         "class_ipc": class_ipc,
         "class_ipc_main": class_ipc_main,
         "class_ipc_section": class_ipc_section,
@@ -160,22 +151,24 @@ def build_patent_advanced_body(
         "first_ap": first_ap,
         "inventor": inventor,
         "first_in": first_in,
-        "patent_type": patent_type,
-        "an": an,
-        "pn": pn,
-        "application_date": application_date,
         "no_ap": no_ap,
         "no_in": no_in,
-        "citation_number_of_times": citation_number_of_times,
-        "citation_forward_number_of_times": citation_forward_number_of_times,
+        "an": an,
+        "pn": pn,
+        "patent_type": patent_type,
+        "family_id": family_id,
+        "application_date": application_date,
+        "publication_date": publication_date,
     }
     for k, v in explicit.items():
         if v is None or v == "":
             continue
         body[k] = v
+    if country:
+        body["country"] = country
     body["size"] = size
     body["from"] = frm
-    body["dataset"] = dataset
+    body["dataset"] = "epo_docdb"
     return body
 
 
