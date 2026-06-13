@@ -86,7 +86,7 @@ def build_patent_detail_path(application_number: str, dataset: str | None = None
     """patent_search_engine `/patent/{application_number}` 详情端点路径。
 
     application_number 由调用方负责 quote;dataset 不为 None 时追加为 query param,
-    对应后端 `_resolve_index` 的多数据集路由(cn_abstract / epo_docdb 等)。
+    对应后端 `_resolve_index` 的多数据集路由(epo_docdb / google_patents 等)。
     """
     path = f"/patent/{application_number}"
     if dataset:
