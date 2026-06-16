@@ -107,6 +107,13 @@ def build_patent_advanced_body(
     class_ipc_class: str | None = None,
     class_ipc_subclass: str | None = None,
     class_ipc_group: str | None = None,
+    # CPC（epo 专属；wrapper 已按粒度路由到对应精确字段）
+    class_cpc: str | None = None,
+    class_cpc_main: str | None = None,
+    class_cpc_section: str | None = None,
+    class_cpc_class: str | None = None,
+    class_cpc_subclass: str | None = None,
+    class_cpc_group: str | None = None,
     # 主体
     ap: str | None = None,
     first_ap: str | None = None,
@@ -115,9 +122,11 @@ def build_patent_advanced_body(
     # 数量（wrapper 已拼成 "min TO max" 字符串）
     no_ap: str | None = None,
     no_in: str | None = None,
+    citation_number_of_times: str | None = None,
     # 号码
     an: str | None = None,
     pn: str | None = None,
+    priority_number: str | None = None,  # epo 专属
     # 类型（wrapper 已把 kind_code 展开成逗号串）
     patent_type: str | None = None,
     # EPO 专属
@@ -126,6 +135,7 @@ def build_patent_advanced_body(
     # 日期范围（wrapper 已拼成 "[from TO to]" 字符串）
     application_date: str | None = None,
     publication_date: str | None = None,
+    priority_date: str | None = None,  # epo 专属
     # 分页
     size: int = 20,
     frm: int = 0,
@@ -147,18 +157,27 @@ def build_patent_advanced_body(
         "class_ipc_class": class_ipc_class,
         "class_ipc_subclass": class_ipc_subclass,
         "class_ipc_group": class_ipc_group,
+        "class_cpc": class_cpc,
+        "class_cpc_main": class_cpc_main,
+        "class_cpc_section": class_cpc_section,
+        "class_cpc_class": class_cpc_class,
+        "class_cpc_subclass": class_cpc_subclass,
+        "class_cpc_group": class_cpc_group,
         "ap": ap,
         "first_ap": first_ap,
         "inventor": inventor,
         "first_in": first_in,
         "no_ap": no_ap,
         "no_in": no_in,
+        "citation_number_of_times": citation_number_of_times,
         "an": an,
         "pn": pn,
+        "priority_number": priority_number,
         "patent_type": patent_type,
         "family_id": family_id,
         "application_date": application_date,
         "publication_date": publication_date,
+        "priority_date": priority_date,
     }
     for k, v in explicit.items():
         if v is None or v == "":
