@@ -187,7 +187,6 @@ def build_patent_advanced_body(
         body["country"] = country
     body["size"] = size
     body["from"] = frm
-    body["dataset"] = "epo_docdb"
     return body
 
 
