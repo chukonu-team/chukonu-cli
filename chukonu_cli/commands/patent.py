@@ -110,6 +110,21 @@ def advanced(
     asyncio.run(_call("POST", "/patent/api/search/advanced", body, json_out))
 
 
+@app.command()
+def analyze(
+    json_body: Path = typer.Option(..., "--json-body", help="JSON 请求体文件路径"),
+    json_out: bool = typer.Option(False, "--json"),
+) -> None:
+    """计量分析（聚合）：过滤字段同 advanced，外加 facets/top_n/applicant_repr/inventor_repr。
+
+    例:{"facets":["top_applicants","by_application_year"],"country":["CN"],
+    "applicant_repr":"original","top_n":10}
+    """
+    body = json_mod.loads(json_body.read_text(encoding="utf-8"))
+    asyncio.run(_call("POST", "/patent/api/analytics/facets", body, json_out))
+
+
+
 async def _print_advanced_openapi(json_out: bool) -> None:
     cfg = load_cfg()
     try:

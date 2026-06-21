@@ -120,6 +120,8 @@ chukonu-cli patent advanced --openapi
 
 向用户呈现结果时建议保留：`application_number`、`patent_name`、`applicant`（或 `first_ap`）、`inventor`、`application_date`、`ipc_main`、`publication_number`、`_score`。完整字段以 `--openapi` 输出为准。
 
+> **注意（applicant/inventor 结构）**：结果中的 `applicant`/`inventor` 现为「按 DOCDB data-format 拆分」的对象 `{"docdb":[...],"docdba":[...],"original":[...]}`（部分文献仅含子集，如中国授权专利常只有 `original`）。向用户展示时取**原文优先**（`original`→`docdb`→`docdba`）的一组名字、用 `; ` 连接；或直接用已是字符串的 `first_ap`/`first_in`。检索**入参** `ap`/`inventor`/`first_ap`（advanced）仍是普通字符串，跨表示自动召回，无需关心 data-format。
+
 ### 2. 按申请号取详情
 
 ```bash
@@ -132,9 +134,33 @@ chukonu-cli patent get <application_number> --json
 chukonu-cli patent stats --json
 ```
 
+### 4. 计量分析（聚合）
+
+回答「Top 申请人/发明人、年度趋势、国别/分类分布、专利权人分析、去重族数」等**分析型**问题，比翻页数千条结果更快更省。过滤字段与 `advanced` 完全一致，额外传 `facets`（必填，可多选）等：
+
+```bash
+chukonu-cli patent analyze --json-body body.json --json
+```
+
+`body.json` 示例（中国专利权人分析，须用原文口径）：
+```json
+{
+  "facets": ["top_applicants", "by_application_year", "by_country"],
+  "country": ["CN"],
+  "applicant_repr": "original",
+  "top_n": 10
+}
+```
+
+- `facets` 可选：`top_applicants`/`top_inventors`、`by_country`/`by_kind`、`by_application_year`/`by_publication_year`/`by_priority_year`、`by_ipc_section`/`by_ipc_subclass`/`by_cpc_section`/`by_cpc_subclass`、`family_count`、`citation_stats`。
+- `top_n`：terms 类每维返回前 N（1-50，默认 10）。
+- `applicant_repr`/`inventor_repr`：Top 实体口径 `docdb`（默认，罗马字标准名，跨语言归一如 samsung/canon）/ `docdba` / `original`（原文）。**中国仅授权(B)文献无 docdb、只有 original——做中国专利权人分析须用 `original`。**
+- 返回 `{total, total_is_lower_bound, facets, ...}`；`facets[维度]` 为 `[{key,count}]`，或 `family_count={unique:N}`、`citation_stats={count,min,max,avg,sum}`。
+
 ## 决策准则
 
 - 用户给主题词或一段技术描述 → `advanced`，使用 `tiabc` 或 `full`，必要时叠加 `patent_type` / `application_date` / `class_ipc_main`
+- 用户问「Top/最多/排名/趋势/分布/有多少家/哪些公司/专利权人分析」等计量问题 → `analyze`（选对应 facets；中国实体用 `applicant_repr=original`），不要去翻页 `advanced` 结果硬数
 - 用户指定申请人/发明人/地域/IPC/日期等结构化条件 → `advanced` 对应字段组合
 - 用户给申请号 → 先 `patent get <an>` 取详情；若需找同申请人更多专利，再用 `advanced` 配合 `ap` / `first_ap`
 - 给用户呈现结果时保留：申请号、标题、申请人、申请日、IPC、公开号
