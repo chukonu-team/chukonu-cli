@@ -136,6 +136,8 @@ def build_patent_advanced_body(
     application_date: str | None = None,
     publication_date: str | None = None,
     priority_date: str | None = None,  # epo 专属
+    # 族去重路由：auto（默认，按字段能力选路）/ family（强制按族去重）/ none（文献级）
+    dedup: str | None = None,
     # 分页
     size: int = 20,
     frm: int = 0,
@@ -145,6 +147,7 @@ def build_patent_advanced_body(
     入参均为**已映射好的后端字段名**（wrapper 负责校验/路由/展开/拼串）。
     空字符串等价于不传（不进 body）。`country` 为 list 直传。
     分页字段映射后端契约 `size` / `from`；`dataset` 固定 `epo_docdb`。
+    `dedup` 仅在非默认（非 "auto"/None）时进 body，交后端族去重路由（见 AdvancedSearchRequest.dedup）。
     """
     body: dict[str, Any] = {}
     explicit: dict[str, Any] = {
@@ -185,6 +188,9 @@ def build_patent_advanced_body(
         body[k] = v
     if country:
         body["country"] = country
+    # dedup 默认 auto 不进 body（保持既有请求形态）；显式 family/none 才带上
+    if dedup and dedup != "auto":
+        body["dedup"] = dedup
     body["size"] = size
     body["from"] = frm
     return body
