@@ -67,6 +67,8 @@ def build_patent_keyword_body(
     size: int = 10,
     frm: int = 0,
     dataset: str | None = None,
+    include_claims: bool = False,
+    include_description: bool = False,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {"query": query, "size": size, "from": frm}
     if patent_type:
@@ -79,19 +81,34 @@ def build_patent_keyword_body(
         body["ipc_code"] = ipc_code
     if dataset:
         body["dataset"] = dataset
+    if include_claims:
+        body["include_claims"] = True
+    if include_description:
+        body["include_description"] = True
     return body
 
 
-def build_patent_detail_path(application_number: str, dataset: str | None = None) -> str:
-    """patent_search_engine `/patent/{application_number}` 详情端点路径。
+def build_patent_detail_path(
+    key: str,
+    dataset: str | None = None,
+    *,
+    include_claims: bool = False,
+    include_description: bool = False,
+) -> str:
+    """patent_search_engine `/patent/{key}` 详情端点路径。
 
-    application_number 由调用方负责 quote;dataset 不为 None 时追加为 query param,
-    对应后端 `_resolve_index` 的多数据集路由(epo_docdb / google_patents 等)。
+    文献 dataset 的 key 是申请号；family dataset 的 key 是 family_key 或成员号码。
+    key 由调用方负责 quote；重字段通过显式 query 参数按需返回。
     """
-    path = f"/patent/{application_number}"
+    path = f"/patent/{key}"
+    query: list[str] = []
     if dataset:
-        path = f"{path}?dataset={dataset}"
-    return path
+        query.append(f"dataset={dataset}")
+    if include_claims:
+        query.append("include_claims=true")
+    if include_description:
+        query.append("include_description=true")
+    return f"{path}?{'&'.join(query)}" if query else path
 
 
 def build_patent_advanced_body(
@@ -140,6 +157,10 @@ def build_patent_advanced_body(
     application_date: str | None = None,
     publication_date: str | None = None,
     priority_date: str | None = None,  # epo 专属
+    # 族去重路由：auto（默认，按字段能力选路）/ family（强制按族去重）/ none（文献级）
+    dedup: str | None = None,
+    include_claims: bool = False,
+    include_description: bool = False,
     # 分页
     size: int = 20,
     frm: int = 0,
@@ -149,6 +170,7 @@ def build_patent_advanced_body(
     入参均为**已映射好的后端字段名**（wrapper 负责校验/路由/展开/拼串）。
     空字符串等价于不传（不进 body）。`country` 为 list 直传。
     分页字段映射后端契约 `size` / `from`；`dataset` 固定 `epo_docdb`。
+    `dedup` 仅在非默认（非 "auto"/None）时进 body，交后端族去重路由（见 AdvancedSearchRequest.dedup）。
     """
     body: dict[str, Any] = {}
     explicit: dict[str, Any] = {
@@ -193,6 +215,13 @@ def build_patent_advanced_body(
         body[k] = v
     if country:
         body["country"] = country
+    # dedup 默认 auto 不进 body（保持既有请求形态）；显式 family/none 才带上
+    if dedup and dedup != "auto":
+        body["dedup"] = dedup
+    if include_claims:
+        body["include_claims"] = True
+    if include_description:
+        body["include_description"] = True
     body["size"] = size
     body["from"] = frm
     return body
