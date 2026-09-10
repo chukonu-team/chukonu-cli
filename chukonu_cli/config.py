@@ -17,7 +17,7 @@ from chukonu_cli.client_core.config import Config
 from chukonu_cli.paths import config_file
 
 DEFAULT_GATEWAY = "https://search.houdutech.cn"
-DEFAULT_PROVIDER = "google"
+DEFAULT_PROVIDER = "wechat"
 
 __all__ = ["Config", "DEFAULT_GATEWAY", "DEFAULT_PROVIDER", "load", "save"]
 

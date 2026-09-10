@@ -7,5 +7,5 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     gateway_base_url: str
-    default_provider: str = "google"
+    default_provider: str = "wechat"
     verify_tls: bool = True

@@ -29,6 +29,11 @@ python -m venv .venv
 
 ## 登录安全模型
 
+当前中国区服务仅开放微信登录，Google 登录暂不可用。新配置默认使用微信；已有
+`default_provider = "google"` 的配置不会被覆盖，请运行
+`chukonu-cli auth login --provider wechat`，或按下文修改默认 provider。
+已有 Google 会话、刷新令牌及 API Key 仍遵循原有的有效期与撤销规则。
+
 CLI ↔ 网关采用 OAuth 2.0 Authorization Code Flow + PKCE (RFC 7636, S256)：
 
 1. CLI 生成高熵 `code_verifier` 与 `code_challenge = BASE64URL(SHA256(verifier))`
@@ -39,8 +44,8 @@ CLI ↔ 网关采用 OAuth 2.0 Authorization Code Flow + PKCE (RFC 7636, S256)�
 6. CLI 立刻 `POST /auth/token` 带上 `code` + `code_verifier` + `redirect_uri` 换取 session (access/refresh token)
 7. 凭据写入 `credentials.json` (明文，0600)
 
-支持的 provider：
-- `google` —— 标准 OIDC，网关验 id_token (RS256 via JWKS)，subject = Google `sub`
+实现保留的 provider：
+- `google` —— 中国区暂时禁用新登录；标准 OIDC，网关验 id_token (RS256 via JWKS)，subject = Google `sub`
 - `wechat` —— 微信开放平台网站应用 `snsapi_login` 扫码，网关调 `sns/oauth2/access_token` 拿 openid/unionid，subject 优先 unionid 回退 openid
 
 两条路径在 CLI 侧完全对称，凭据文件可同时保留多个 provider，`current` 字段决定默认使用哪个。
