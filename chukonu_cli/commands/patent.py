@@ -28,40 +28,40 @@ PATENT_DATASETS: tuple[str, ...] = ("epo_docdb", "epo_docdb_family")
 
 # family 命中的成员平行数组（规范 §2.2）：同一下标恒为同一成员。
 # 渲染成表格时 null **必须**占位输出，跳过会让整列错位。
+# 契约 v3：成员级字段一律复数名（claims 例外，两侧同名但 family 下取值为平行数组）。
 _MEMBER_PARALLEL_FIELDS: tuple[str, ...] = (
-    "application_number",
-    "publication_number",
-    "doc_id",
-    "patent_name",
-    "abstract",
-    "title_zh",
-    "title_ja",
-    "title_ko",
-    "abstract_zh",
-    "abstract_ja",
-    "abstract_ko",
-    "first_ap",
-    "first_in",
-    "patent_type",
-    "ipc_main",
-    "ipc_main_code",
-    "cpc_main",
-    "country",
-    "title_lang",
-    "abstract_lang",
-    "date_of_last_exchange",
+    "application_numbers",
+    "publication_numbers",
+    "doc_ids",
+    "patent_names",
+    "abstracts",
+    "titles_zh",
+    "titles_ja",
+    "titles_ko",
+    "abstracts_zh",
+    "abstracts_ja",
+    "abstracts_ko",
+    "first_aps",
+    "first_ins",
+    "patent_types",
+    "ipc_mains",
+    "cpc_mains",
+    "countries",
+    "title_langs",
+    "abstract_langs",
+    "dates_of_last_exchange",
     "claims",
-    "claims_lang",
-    "description_text",
+    "claims_langs",
+    "description_texts",
 )
 
 # 表格列（顺序即列序）。其余平行数组不铺开成列，避免宽表；用 --json 取全量。
 _MEMBER_COLUMNS: tuple[tuple[str, str], ...] = (
-    ("publication_number", "公开号"),
-    ("application_number", "申请号"),
-    ("country", "国别"),
-    ("patent_type", "类型"),
-    ("patent_name", "标题"),
+    ("publication_numbers", "公开号"),
+    ("application_numbers", "申请号"),
+    ("countries", "国别"),
+    ("patent_types", "类型"),
+    ("patent_names", "标题"),
 )
 
 _NULL_PLACEHOLDER = "-"
@@ -76,8 +76,8 @@ def _validate_dataset(value: str) -> str:
 
 
 def _member_row_count(hit: dict[str, Any]) -> int:
-    """成员行数：以族级 family_size 为准，缺失时退回最长平行数组。"""
-    size = hit.get("family_size")
+    """成员行数：以族级 member_count 为准，缺失时退回最长平行数组。"""
+    size = hit.get("member_count")
     if isinstance(size, int) and not isinstance(size, bool) and size > 0:
         return size
     return max(
@@ -98,7 +98,7 @@ def _family_member_table(hit: dict[str, Any]) -> Table:
     """把一个 family 命中按成员下标渲染成表格（规范 §6）。"""
     rows = _member_row_count(hit)
     key = _cell(hit.get("family_key"))
-    caption = f"family_size={hit.get('family_size')}" if "family_size" in hit else None
+    caption = f"member_count={hit.get('member_count')}" if "member_count" in hit else None
 
     table = Table(title=f"family_key {key}", caption=caption, title_justify="left")
     table.add_column("#", justify="right", style="dim", no_wrap=True)
@@ -116,12 +116,12 @@ def _family_member_table(hit: dict[str, Any]) -> Table:
 
 
 def _family_length_warnings(hit: dict[str, Any]) -> list[str]:
-    """平行数组长度必须等于 family_size（规范 §2.1.1）；不等是数据契约破坏，明说而不是静默截断。"""
-    size = hit.get("family_size")
+    """平行数组长度必须等于 member_count（规范 §2.1.1）；不等是数据契约破坏，明说而不是静默截断。"""
+    size = hit.get("member_count")
     if not isinstance(size, int) or isinstance(size, bool):
         return []
     return [
-        f"{f} 长度 {len(hit[f])} != family_size {size}"
+        f"{f} 长度 {len(hit[f])} != member_count {size}"
         for f in _MEMBER_PARALLEL_FIELDS
         if isinstance(hit.get(f), list) and len(hit[f]) != size
     ]

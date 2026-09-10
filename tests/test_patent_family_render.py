@@ -21,13 +21,13 @@ from chukonu_cli.commands.patent import (
 def _hit(**overrides: Any) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "family_key": "60785350",
-        "family_size": 3,
+        "member_count": 3,
         # 中间成员缺申请号/标题：正是会导致错位的形态
-        "application_number": ["CN-1-A", None, "US-1-B2"],
-        "publication_number": ["CN-1-A", "EP-1-A1", "US-1-B2"],
-        "country": ["CN", "EP", "US"],
-        "patent_type": ["A", "A1", "B2"],
-        "patent_name": ["中文标题", None, "English title"],
+        "application_numbers": ["CN-1-A", None, "US-1-B2"],
+        "publication_numbers": ["CN-1-A", "EP-1-A1", "US-1-B2"],
+        "countries": ["CN", "EP", "US"],
+        "patent_types": ["A", "A1", "B2"],
+        "patent_names": ["中文标题", None, "English title"],
     }
     payload.update(overrides)
     return payload
@@ -42,14 +42,30 @@ def _render_text(data: Any, width: int = 200) -> str:
 # ---------- 行数 ----------
 
 
-def test_row_count_uses_family_size() -> None:
+def test_row_count_uses_member_count() -> None:
     assert _member_row_count(_hit()) == 3
 
 
 def test_row_count_falls_back_to_longest_array() -> None:
     hit = _hit()
-    hit.pop("family_size")
+    hit.pop("member_count")
     assert _member_row_count(hit) == 3
+
+
+def test_v2_singular_names_are_not_treated_as_member_arrays() -> None:
+    """v2 单数名已撤销：若它们仍被当成平行数组，v3 载荷会渲染出零列表格。
+
+    这是本次改名的回归防线——只给 v2 名字时，行数应退化为 0（认不出成员数组），
+    而不是把 doc 级单数字段误当族成员铺开。
+    """
+    v2_only = {
+        "family_key": "60785350",
+        "family_size": 3,
+        "publication_number": ["CN-1-A", "EP-1-A1", "US-1-B2"],
+        "country": ["CN", "EP", "US"],
+    }
+    assert _member_row_count(v2_only) == 0
+    assert _family_length_warnings(v2_only) == []
 
 
 # ---------- null 占位（错位防线） ----------
@@ -78,9 +94,9 @@ def test_every_member_index_is_rendered() -> None:
         assert pub in text
 
 
-def test_row_count_equals_family_size_even_when_array_shorter() -> None:
-    """数组比 family_size 短时仍按 family_size 出行，缺位补占位符（不静默少一行）。"""
-    hit = _hit(family_size=4)
+def test_row_count_equals_member_count_even_when_array_shorter() -> None:
+    """数组比 member_count 短时仍按 member_count 出行，缺位补占位符（不静默少一行）。"""
+    hit = _hit(member_count=4)
     text = _render_text(hit)
     body = [ln for ln in text.splitlines() if ln.strip().startswith("│ 3")]
     assert len(body) == 1, text
@@ -90,9 +106,9 @@ def test_row_count_equals_family_size_even_when_array_shorter() -> None:
 
 
 def test_length_mismatch_is_reported() -> None:
-    warns = _family_length_warnings(_hit(family_size=4))
+    warns = _family_length_warnings(_hit(member_count=4))
     assert warns
-    assert any("family_size 4" in w for w in warns)
+    assert any("member_count 4" in w for w in warns)
 
 
 def test_no_warning_when_lengths_match() -> None:
@@ -124,10 +140,11 @@ def test_render_document_hit_falls_back_to_json(capsys: Any) -> None:
 
 
 def test_render_keeps_non_member_fields_visible(capsys: Any) -> None:
-    _render(_hit(earliest_application_date="2017-06-29", countries=["CN", "EP", "US"]))
+    # latest_publication_date 是族级标量（v3 已删除 earliest_*），不进成员表格，须原样补出
+    _render(_hit(latest_publication_date="2023-07-11", max_member_citation_count=12))
     out = capsys.readouterr().out
-    assert "earliest_application_date" in out
-    assert "2017-06-29" in out
+    assert "latest_publication_date" in out
+    assert "2023-07-11" in out
 
 
 def test_render_does_not_mutate_payload() -> None:
