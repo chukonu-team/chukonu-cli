@@ -140,6 +140,8 @@ def build_patent_advanced_body(
     application_date: str | None = None,
     publication_date: str | None = None,
     priority_date: str | None = None,  # epo 专属
+    # 族折叠路由：auto（默认，按字段能力选路）/ always（强制按族折叠）/ never（文献级）
+    collapse_by_family: str | None = None,
     # 分页
     size: int = 20,
     frm: int = 0,
@@ -149,6 +151,7 @@ def build_patent_advanced_body(
     入参均为**已映射好的后端字段名**（wrapper 负责校验/路由/展开/拼串）。
     空字符串等价于不传（不进 body）。`country` 为 list 直传。
     分页字段映射后端契约 `size` / `from`；`dataset` 固定 `epo_docdb`。
+    `collapse_by_family` 仅在非默认（非 "auto"/None）时进 body，交后端族折叠路由（见 AdvancedSearchRequest.collapse_by_family）。值为 auto/always/never。
     """
     body: dict[str, Any] = {}
     explicit: dict[str, Any] = {
@@ -193,6 +196,9 @@ def build_patent_advanced_body(
         body[k] = v
     if country:
         body["country"] = country
+    # collapse_by_family 默认 auto 不进 body（保持既有请求形态）；显式 always/never 才带上
+    if collapse_by_family and collapse_by_family != "auto":
+        body["collapse_by_family"] = collapse_by_family
     body["size"] = size
     body["from"] = frm
     return body
