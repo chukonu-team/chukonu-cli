@@ -96,7 +96,7 @@ def build_patent_detail_path(application_number: str, dataset: str | None = None
 
 def build_patent_advanced_body(
     *,
-    # 文本（支持 OR 布尔，如 "人工智能 OR 深度学习"）；epo 无 claims，故仅标题/摘要
+    # 文本：大写 AND/OR 布尔操作符（空白分隔，AND 优先于 OR）；项内空格=词级 OR；epo 无 claims，故仅标题/摘要
     title_abstract_content: str | None = None,
     title: str | None = None,
     abstract_content: str | None = None,
