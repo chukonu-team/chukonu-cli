@@ -33,9 +33,9 @@ chukonu-cli patent advanced --json-body /tmp/query.json --json
 chukonu-cli patent advanced --openapi
 ```
 
-所有字段均可选，任意组合即可。文本字段支持 `OR` 布尔，例如 `人工智能 OR 深度学习`。
+所有字段均可选，任意组合即可。文本字段支持大写 `AND` / `OR` 布尔操作符（需以空白分隔，`AND` 优先于 `OR`），例如 `人工智能 OR 深度学习`、`蓝牙耳机 AND 防水`；`AND` 项内空格是词级 OR（非必中），收窄靠显式 `AND`。括号与 `NOT` 不支持（报 INVALID_QUERY_SYNTAX），小写 and/or 按普通词处理。
 
-#### 文本检索字段（均支持 OR 布尔）
+#### 文本检索字段（均支持 AND/OR 布尔）
 
 | 字段 | 含义 |
 |---|---|
