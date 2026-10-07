@@ -228,3 +228,13 @@ def build_patent_similar_body(
     if year_max is not None:
         body["year_max"] = year_max
     return body
+
+
+def build_patent_raw_body(dsl: dict[str, Any]) -> dict[str, Any]:
+    """patent_search_engine `POST /search/raw` 的请求体：``{"body": <dsl>}``。
+
+    只包裹、不校验——校验权威在引擎（`raw_dsl.validate_raw_dsl`，单一信任边界；
+    网关/CLI 各复制一份禁键表必然与引擎漂移）。dsl 原样进 body，逐字节不动
+    （透传通道的核心不变量，tests/test_mcp_raw_dsl.py 有断言）。
+    """
+    return {"body": dsl}

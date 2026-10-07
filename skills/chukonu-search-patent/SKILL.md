@@ -166,6 +166,13 @@ chukonu-cli patent analyze --json-body body.json --json
 - 用户指定申请人/发明人/国别/IPC/CPC/日期等结构化条件 → `advanced` 对应字段组合
 - 用户给申请号 → 先 `patent get <an>` 取详情；若需找同申请人更多专利，再用 `advanced` 配合 `ap` / `first_ap`
 - 给用户呈现结果时保留：申请号、标题、申请人、申请日、IPC、公开号
+- 结构化字段表达不了时才走 raw DSL（排除词 `must_not`、短语 `match_phrase`、精确 OR 分支
+  `should+minimum_should_match`、自定义聚合、非标排序）：
+  先 `chukonu-cli api GET /index/schema` 拿字段权威清单（大小写/子字段 `.keyword` 勿凭记忆猜），
+  再 `chukonu-cli api POST /search/raw --json-body /tmp/dsl.json`（body 形如 `{"body": {…ES search body…}}`）。
+  注意：raw 需引擎 `RAW_SEARCH_ENABLED` 开启（未开启返回 503）；size 上限 100、窗口 10000；
+  `_source` 含 claims/description_text 时单页 size 自动收紧到 10；raw 结果喂 `patent get`
+  需先用号码走 `advanced` 换合法 id
 
 ## 错误处理
 
@@ -174,4 +181,6 @@ chukonu-cli patent analyze --json-body body.json --json
 | exit code 2 + "未登录" | 提示 `chukonu-cli auth login` |
 | HTTP 401 | 同上 |
 | HTTP 422 字段校验错误 | 先跑 `chukonu-cli patent advanced --openapi`，对齐字段名/格式（如日期 `[YYYYMMDD TO YYYYMMDD]`、`patent_type` 代码）后重试 |
+| HTTP 400 + `RAW_QUERY_REJECTED` | raw DSL 被护栏拒绝；按 detail 里的 `field_path` **定点修那一个键**，不要整段重写；字段不确定先 `api GET /index/schema` |
+| HTTP 503（raw） | 引擎未开 `RAW_SEARCH_ENABLED` 或 raw 并发闸；带 Retry-After 则退避重试，否则提示需要服务端开启该通道 |
 | HTTP 5xx | 上游异常；稍后重试 |
